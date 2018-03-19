@@ -86,6 +86,7 @@ func executeAction(c *cli.Context) (err error) {
 			return err
 		}
 	}
+	defer engine.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
 	defer cancel()
