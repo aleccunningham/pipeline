@@ -161,6 +161,10 @@ func (e *engine) Destroy(*backend.Config) error {
 	return nil
 }
 
+func (e *engine) Close() error {
+	return nil
+}
+
 // requestAuth fills the authorization header for the provided request based on the configuration
 func (config *Config) requestAuth(request *http.Request) error {
 	if request == nil {

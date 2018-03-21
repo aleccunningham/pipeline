@@ -7,9 +7,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cncd/pipeline/pipeline"
-	"github.com/cncd/pipeline/pipeline/backend"
-	"github.com/cncd/pipeline/pipeline/multipart"
+	"github.com/marjoram/pipeline/pipeline"
+	"github.com/marjoram/pipeline/pipeline/backend"
+	"github.com/marjoram/pipeline/pipeline/backend/docker"
+	"github.com/marjoram/pipeline/pipeline/backend/kubernetes"
+	"github.com/marjoram/pipeline/pipeline/interrupt"
+	"github.com/marjoram/pipeline/pipeline/multipart"
 	"github.com/urfave/cli"
 )
 
@@ -69,11 +72,32 @@ func executeAction(c *cli.Context) (err error) {
 		return err
 	}
 
+<<<<<<< HEAD:pipectl/exec.go
 	/*
 		var engine backend.Engine
 		ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
 		defer cancel()
 		ctx = interrupt.WithContext(ctx)
+=======
+	var engine backend.Engine
+	if c.Bool("kubernetes") {
+		engine = kubernetes.New(
+			c.String("kubernetes-namepsace"),
+			c.String("kubernetes-endpoint"),
+			c.String("kubernetes-token"),
+		)
+	} else {
+		engine, err = docker.NewEnv()
+		if err != nil {
+			return err
+		}
+	}
+	defer engine.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
+	defer cancel()
+	ctx = interrupt.WithContext(ctx)
+>>>>>>> 76ece0e5224ff8306b07b9d7f6353152928f219f:pipec/exec.go
 
 		return pipeline.New(config).Run
 			pipeline.WithContext(ctx),
