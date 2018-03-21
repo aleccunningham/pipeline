@@ -8,12 +8,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cncd/pipeline/pipeline"
-	"github.com/cncd/pipeline/pipeline/backend"
-	"github.com/cncd/pipeline/pipeline/backend/docker"
-	"github.com/cncd/pipeline/pipeline/backend/kubernetes"
-	"github.com/cncd/pipeline/pipeline/interrupt"
-	"github.com/cncd/pipeline/pipeline/multipart"
+	"github.com/marjoram/pipeline/pipeline"
+	"github.com/marjoram/pipeline/pipeline/backend"
+	"github.com/marjoram/pipeline/pipeline/backend/docker"
+	"github.com/marjoram/pipeline/pipeline/backend/kubernetes"
+	"github.com/marjoram/pipeline/pipeline/interrupt"
+	"github.com/marjoram/pipeline/pipeline/multipart"
 	"github.com/urfave/cli"
 )
 
@@ -86,6 +86,7 @@ func executeAction(c *cli.Context) (err error) {
 			return err
 		}
 	}
+	defer engine.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
 	defer cancel()
