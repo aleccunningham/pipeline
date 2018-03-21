@@ -15,7 +15,7 @@ import (
 	"path"
 
 	. "github.com/bannzaicloud/banzai-types/components"
-	"github.com/cncd/pipeline/pipeline/backend"
+	"github.com/marjoram/pipeline/pipeline/backend"
 	log "github.com/sirupsen/logrus"
 	validator "gopkg.in/go-playground/validator.v8"
 )
