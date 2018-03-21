@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -10,9 +9,6 @@ import (
 
 	"github.com/cncd/pipeline/pipeline"
 	"github.com/cncd/pipeline/pipeline/backend"
-	"github.com/cncd/pipeline/pipeline/backend/docker"
-	"github.com/cncd/pipeline/pipeline/backend/kubernetes"
-	"github.com/cncd/pipeline/pipeline/interrupt"
 	"github.com/cncd/pipeline/pipeline/multipart"
 	"github.com/urfave/cli"
 )
@@ -73,30 +69,19 @@ func executeAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	var engine backend.Engine
-	if c.Bool("kubernetes") {
-		engine = kubernetes.New(
-			c.String("kubernetes-namepsace"),
-			c.String("kubernetes-endpoint"),
-			c.String("kubernetes-token"),
-		)
-	} else {
-		engine, err = docker.NewEnv()
-		if err != nil {
-			return err
-		}
-	}
+	/*
+		var engine backend.Engine
+		ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
+		defer cancel()
+		ctx = interrupt.WithContext(ctx)
 
-	ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
-	defer cancel()
-	ctx = interrupt.WithContext(ctx)
-
-	return pipeline.New(config,
-		pipeline.WithContext(ctx),
-		pipeline.WithLogger(defaultLogger),
-		pipeline.WithTracer(defaultTracer),
-		pipeline.WithEngine(engine),
-	).Run()
+		return pipeline.New(config).Run
+			pipeline.WithContext(ctx),
+			pipeline.WithLogger(defaultLogger),
+			pipeline.WithTracer(defaultTracer),
+			pipeline.WithEngine(engine),
+		).Run()
+	*/
 }
 
 var defaultLogger = pipeline.LogFunc(func(proc *backend.Step, rc multipart.Reader) error {

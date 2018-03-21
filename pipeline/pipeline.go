@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/cncd/pipeline/pipeline/backend"
 	"github.com/cncd/pipeline/pipeline/multipart"
@@ -34,6 +36,7 @@ type Runtime struct {
 	spec    *backend.Config
 	engine  backend.Engine
 	started int64
+	k8Cli   kubernetes.Interface
 
 	ctx    context.Context
 	tracer Tracer
@@ -43,7 +46,18 @@ type Runtime struct {
 // New returns a new runtime using the specified runtime
 // configuration and runtime engine.
 func New(spec *backend.Config, opts ...Option) *Runtime {
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	// creates the clientset
+	k8Cli, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
 	r := new(Runtime)
+	r.k8Cli = k8Cli
 	r.spec = spec
 	r.ctx = context.Background()
 	for _, opts := range opts {

@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"io"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -11,13 +10,14 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-        "time"
-	
+	"time"
+
+	"path"
+
 	. "github.com/bannzaicloud/banzai-types/components"
+	"github.com/marjoram/pipeline/pipeline/backend"
 	log "github.com/sirupsen/logrus"
-	"github.com/cncd/pipeline/pipeline/backend"
-	"gopkg.in/go-playground/validator.v9"
-        "path"
+	validator "gopkg.in/go-playground/validator.v8"
 )
 
 type engine struct {
@@ -35,7 +35,7 @@ type Config struct {
 	Token      string
 }
 
-// CustomerCluster represents a kubernetes cluster that 
+// CustomerCluster represents a kubernetes cluster that
 // doesn't supply configurations for aws, azure, or gke
 type CustomCluster struct {
 	// References banzai-types implicit import
@@ -138,7 +138,7 @@ func (e *engine) Exec(*backend.Step) error {
 		}
 	}
 
-        return nil
+	return nil
 }
 
 // Wait for the pipeline step to complete and returns
