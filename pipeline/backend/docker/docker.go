@@ -5,13 +5,12 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/marjoram/pipeline/pipeline/backend"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/marjoram/pipeline/pipeline/backend"
 )
 
 type engine struct {
