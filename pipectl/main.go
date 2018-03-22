@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra/cobra/cmd"
 	"github.com/urfave/cli"
 
 	_ "github.com/joho/godotenv/autoload"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 func main() {
@@ -23,4 +25,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	// ctl versionn
+	cmd.Execute()
 }
