@@ -72,13 +72,8 @@ func executeAction(c *cli.Context) (err error) {
 		return err
 	}
 
-<<<<<<< HEAD:pipectl/exec.go
+
 	/*
-		var engine backend.Engine
-		ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
-		defer cancel()
-		ctx = interrupt.WithContext(ctx)
-=======
 	var engine backend.Engine
 	if c.Bool("kubernetes") {
 		engine = kubernetes.New(
@@ -97,7 +92,6 @@ func executeAction(c *cli.Context) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Duration("timeout"))
 	defer cancel()
 	ctx = interrupt.WithContext(ctx)
->>>>>>> 76ece0e5224ff8306b07b9d7f6353152928f219f:pipec/exec.go
 
 		return pipeline.New(config).Run
 			pipeline.WithContext(ctx),
