@@ -111,7 +111,7 @@ func start(c *cli.Context) error {
 		println("ctrl+c received, terminating process")
 		sigterm.Set()
 	})
-
+	/*
 	for {
 		if sigterm.IsSet() {
 			return nil
@@ -120,6 +120,29 @@ func start(c *cli.Context) error {
 			return err
 		}
 	}
+	*/
+	
+	var wg sync.WaitGroup
+	parallel := c.Int("max-procs")
+	wg.Add(parallel)
+	
+	for i := 0; i < parallel; i ++ {
+		go func() {
+			defer wg.Done()
+			for {
+				if sigterm.IsSet() {
+					return nil
+				}
+				if err := run(ctx, client, filter); err != nil {
+					log.Error().Err(err).Msg("pipeline done with error")
+					return
+				}
+			}
+		}()
+	}
+	
+	wg.Wait()
+	return nil
 }
 
 func run(ctx context.Context, client rpc.Peer, filter rpc.Filter) error {
@@ -137,6 +160,7 @@ func run(ctx context.Context, client rpc.Peer, filter rpc.Filter) error {
 	if os.Getenv("SUICIDE_MODE") != "" {
 		os.Exit(1)
 	}
+	
 	// new docker engine
 	engine, err := docker.NewEnv()
 	if err != nil {
