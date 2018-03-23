@@ -2,57 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-message File {
-  string name = 1;
-  string proc = 2;
-  string mime = 3;
-  int64  time = 4;
-  int32  size = 5;
-  bytes  data = 6;
-  map<string, string> meta = 7;
-}
-
-message State {
-  string name = 1;
-  bool   exited = 2;
-  int32  exit_code = 3;
-  int64  started = 4;
-  int64  finished = 5;
-  string error = 6;
-}
-
-message Line {
-  string proc = 1;
-  int64  time = 2;
-  int32  pos = 3;
-  string out = 4;
-}
-
-message Filter {
-  map<string, string> labels = 1;
-  string expr = 2;
-}
-
-message Pipeline {
-  string id = 1;
-  int64 timeout = 2;
-  bytes payload = 3;
-}
-
-message HealthCheckRequest {
-  string service = 1;
-}
-
-message HealthCheckResponse {
-  enum ServingStatus {
-    UNKNOWN = 0;
-    SERVING = 1;
-    NOT_SERVING = 2;
-  }
-  ServingStatus status = 1;
-}
-
-service Drone {
+service PipelineService {
   rpc Next   (NextRequest)   returns (NextReply) {}
   rpc Init   (InitRequest)   returns (Empty) {}
   rpc Wait   (WaitRequest)   returns (Empty) {}
@@ -62,14 +12,6 @@ service Drone {
   rpc Upload (UploadRequest) returns (Empty) {}
   rpc Log    (LogRequest)    returns (Empty) {}
 }
-
-service Health {
-  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
-}
-
-//
-// next
-//
 
 message NextRequest {
   Filter filter = 1;
@@ -114,4 +56,62 @@ message LogRequest {
 
 message Empty {
 
+}
+
+// [END PIPELINE SERVICE]
+
+service Health {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+  }
+  ServingStatus status = 1;
+}
+
+// [END HEALTHCHECK SERVICE]
+
+message File {
+  string name = 1;
+  string proc = 2;
+  string mime = 3;
+  int64  time = 4;
+  int32  size = 5;
+  bytes  data = 6;
+  map<string, string> meta = 7;
+}
+
+message State {
+  string name = 1;
+  bool   exited = 2;
+  int32  exit_code = 3;
+  int64  started = 4;
+  int64  finished = 5;
+  string error = 6;
+}
+
+message Line {
+  string proc = 1;
+  int64  time = 2;
+  int32  pos = 3;
+  string out = 4;
+}
+
+message Filter {
+  map<string, string> labels = 1;
+  string expr = 2;
+}
+
+message Pipeline {
+  string id = 1;
+  int64 timeout = 2;
+  bytes payload = 3;
 }
