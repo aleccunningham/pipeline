@@ -13,6 +13,13 @@ type PipelineList struct {
 	Items           []Pipeline `json:"items"`
 }
 
+// Different types of deployments
+const (
+	ClusterMode		DeployMode = "cluster"
+	ClientMode		DeployMode = "client"
+	InClusterClientMode	DeployMode = "in-cluster-client"
+)
+
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -27,218 +34,101 @@ type Pipeline struct {
 	// Specification of the ddesired behaviour of the pod terminator.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
-	Spec PipelineSpec `json:"spec"`
+	Spec 	PipelineSpec `json:"spec"`
+	Status	PipelineStatus `json:"status,omitempty"`
 }
 
-// PipelineSpec is the spec for a Duked resource
+// PipelineSpec describes the specification for a Cloud Native Continous Delivery pipeline using Kubernetes as a build manager
+// It carries all information a pipeline.Run() command uses to run a Pipeline
 type PipelineSpec struct {
 	// Selector is how the target will be selected
 	Selector map[string]string `json:"selector,omitempty"`
-	// sourceRepository is the location of a Deployments code
-	sourceRepository string `json:"sourceRepository,omitempty"`
-	// Dockerfile specifies which dockerfile to use from sourceRepository
-	Dockerfile string      `json:"dockerfile,omitempty"`
-	Volume     Volume      `json:"volume,omitempty"`
-	Volumes    Volumes     `json:"volumes,omitempty"`
-	SSH        SSHSettings `json:"ssh,omitempty"`
-	Steps      Steps       `json:"steps,omitempty"`
-	Notify     Notify      `json:"notify,omitempty"`
-	When       RunWhen     `json:"when,omitempty"`
-	Config     Config      `json:"config,omitempty"`
+	// Image is the container image for the driver and executor
+	Image *string `json:"image,omitempty"`
+	// InitContainerImage is the image of the init-container to use
+	InitContainerImage *string `json:"initContainerImage,omitempty"`
+	// Environment is an array of environment variables that are ingested by the Pipeline executor and agents
+	Environment map[string]string `json:"environment"`
+	// Volumes is the list of Kubernetes volumes that can be mounted by the driver and/or executors
+	Volumes []apiv1.Volume  `json:"volumes,omitempty"`
+	// Agent defines a Cloud Native Continous Delivery build executor
+	Agent	AgentSpec `json:"agent,omitempty"`
 }
 
-// SSHSettings defines operations for using SSH keys with duke
-type SSHSettings struct {
-	// hostPath specifies the location of the .ssh/ directory
-	hostPath string `json:"hostPath,omitempty"`
+// NamePath is a pair of a name and a path to which the named objects should be mounted to
+type NamePath struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
 }
 
-// Steps defines pipeline steps (pipeline execution)
-type Steps struct {
-	// name is the label for a single pipeline step
-	name string `json:"name,omitempty"`
-	// image is the docker builder image to run steps in
-	image string `json:"image,omitempty"`
-	// commands is an array of strings defining a custom command to execute
-	commands map[string]string `json:"commands,omitempty"`
-	// env defines environment variables ingested by the build executor
-	env     map[string]string `json:"env,omitempty"`
-	secrets Secrets           `json:"secrets,omitempty"`
-}
+// SecretType tells the type of a secret
+type SecretType string
+
+// An enumeration of the secret types supported
+const (
+	// GCPServiceAccountSecret is for secrets sourced from a GCP SA Json key file, which also needs to
+	// be defined as an Env variable GOOGLE_APPLICATION_CREDENTIALS
+	GCPServiceAccountSecret SecretType = "GCPServiceAcount"
+	// SlackTokenSecret is for slack webhook tokens to enabled notifications
+	SlackTokenSecret SecretType = "SlackToken"
+	// GenericType is for secrets that need no special handling
+	GenericType SecretType = "Generic"
+)
 
 // Secrets defines the location, kind, and type of a kubernetes secret object
 type Secrets struct {
-	// name is the label for a single secret
-	name string `json:"name,omitempty"`
-	// TODO
+	// Name is the label for a single secret
+	Name string `json:"name"`
+	Path string `json:"path"`
+	Type SecretType `json:"secretType"`
 }
 
-// Notify
-type Notify struct {
-	When  []NotifyWhen  `json:"when,omitempty"`
-	Where []NotifyWhere `json:"where,omitempty"`
+// PipelinePodSpec defines common things that can be customized for a Pipeline driver or executor pod
+type PipelinePodSpec struct {
+	// Image is the container image to use
+	Image *string `json:"image,omitempty"`
+	// ConfigMaps carries information of other ConfigMaps to add to the pod 
+	ConfigMaps []NamePath `json:"configMaps,omitempty"`
+	// Secrets carries information of secrets to add to the pod
+	Secrets []SecretInfo `json:"secrets,omitempty"`
+	// EnvVars carries the environment variables to add to the pod
+	EnvVars map[string]string `json:"envVars,omitempty"`
+	// Labels are the Kubernetes labels to be added to the pod
+	Labels map[string]string `json:"labels,omitempty"`
+	// Annotations are the Kubernetes annotationsn to be added to the pod
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// VolumeMounts specifies the volumes listed in ".spec.volumes" to mount into the main container's filesystem
+	VolumeMounts []apiv1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
-// NotifyWhen defines conditionals for notifications
-type NotifyWhen struct {
-	// event holds all possible event-based conditionals i.e. "on_success"
-	Events []Event `json:"event,omitempty"`
-}
-
-// NotifyWhere defines the external services to POST to for notifications
-// New providers can be added via satisfying notify.Interface
-type NotifyWhere struct {
-	// slack integration
-	Slack NotifyWhereSlack `json:"slack,omitempty"`
-	// email integration
-	Email NotifyWhereEmail `json:"email,omitempty"`
-}
-
-// NotifyWhereSlack defines notifications via slack
-type NotifyWhereSlack struct {
-	// channel is a list of slack channels
-	Channel map[string]string `json:"channel,omitempty"`
-	// TODO allow fromSecret
-	// token is the workspace-specific slack token for authentication
-	Token string `json:"token,omitempty"`
-}
-
-// NotifyWhereEmail defines notifications via email
-type NotifyWhereEmail struct {
-	// from_address is the outgoing email address
-	fromAddress string `json:"from_address,omitempty"`
-	// to_address is a list of addresses to notify
-	toAddress map[string]string `json:"to_address,omitempty"`
-}
-
-// Event is an event used as a when/where conditional
-type Event struct {
-	Name  string `json:"name,omitempty"`
-	Alias string `json:"name,omitempty"`
-}
-
-// RunWhen defines what events trigger the operator to execute the pipeline
-type RunWhen struct {
-	// event holds all possible event-based conditionals i.e. "on_commit"
-	Event []Event `json:"events,omitempty"`
-	// branch defines a git branch conditional
-	Branch string `json:"branch,omitempty"`
-}
-
-// Status has the status of the cluster
-type PipelineStatus struct {
-	Phase      Phase       `json:"phase"`
-	Conditions []Condition `json:"conditions"`
-}
-
-// Phase of the pipeline status
-type Phase string
-
-// Condition saves the state information of the pipeline
-type Condition struct {
-	Type           ConditionType `json:"type"`
-	Reason         string        `json:"reason"`
-	TransitionTime string        `json:"transitionTime"`
-}
-
-// ConditionType defines the condition that the pipelinne can have
-type ConditionType string
-
-// Config defines the runtime configuration of a pipeline.
-type Config struct {
-	Stages   []*Stage   `json:"pipeline"` // pipeline stages
-	Networks []*Network `json:"networks"` // network definitions
-	Volumes  []*Volume  `json:"volumes"`  // volume definitions
-	Secrets  []*Secret  `json:"secrets"`  // secret definitions
+// AgentSpec is the specification of the pipeline executor; mirroring many 
+type AgentSpec struct {
+	// PipelinePodSpec references the base spec for all pods
+	PipelinePodSpec
+	// Pipeline carries the build stages for the agent to complete 
+	Stages []Stage `json:"pipeline,omitempty"`
+	// Services define sidecar pods to run with Agents (i.e. databases)
+	Services []Service `jsonn:"services,omitempty"`
 }
 
 // Stage denotes a collection of one or more steps.
 type Stage struct {
+	// Name defines the collection of steps for a given stage
 	Name  string  `json:"name,omitempty"`
-	Alias string  `json:"alias,omitempty"`
+	// Steps is a list of step objects that are each run in isolated pods in sequence
 	Steps []*Step `json:"steps,omitempty"`
 }
 
-// Step defines a container process.
+// Steps defines pipeline steps (pipeline execution)
 type Step struct {
-	Name         string            `json:"name"`
-	Alias        string            `json:"alias,omitempty"`
-	Image        string            `json:"image,omitempty"`
-	Pull         bool              `json:"pull,omitempty"`
-	Detached     bool              `json:"detach,omitempty"`
-	Privileged   bool              `json:"privileged,omitempty"`
-	WorkingDir   string            `json:"working_dir,omitempty"`
-	Environment  map[string]string `json:"environment,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Entrypoint   []string          `json:"entrypoint,omitempty"`
-	Command      []string          `json:"command,omitempty"`
-	ExtraHosts   []string          `json:"extra_hosts,omitempty"`
-	Volumes      []string          `json:"volumes,omitempty"`
-	Tmpfs        []string          `json:"tmpfs,omitempty"`
-	Devices      []string          `json:"devices,omitempty"`
-	Networks     []Conn            `json:"networks,omitempty"`
-	DNS          []string          `json:"dns,omitempty"`
-	DNSSearch    []string          `json:"dns_search,omitempty"`
-	MemSwapLimit int64             `json:"memswap_limit,omitempty"`
-	MemLimit     int64             `json:"mem_limit,omitempty"`
-	ShmSize      int64             `json:"shm_size,omitempty"`
-	CPUQuota     int64             `json:"cpu_quota,omitempty"`
-	CPUShares    int64             `json:"cpu_shares,omitempty"`
-	CPUSet       string            `json:"cpu_set,omitempty"`
-	OnFailure    bool              `json:"on_failure,omitempty"`
-	OnSuccess    bool              `json:"on_success,omitempty"`
-	AuthConfig   Auth              `json:"auth_config,omitempty"`
-	NetworkMode  string            `json:"network_mode,omitempty"`
-	IpcMode      string            `json:"ipc_mode,omitempty"`
-	Sysctls      map[string]string `json:"sysctls,omitempty"`
-}
-
-// Auth defines registry authentication credentials.
-type Auth struct {
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Email    string `json:"email,omitempty"`
-}
-
-// Conn defines a container network connection.
-type Conn struct {
-	Name    string   `json:"name"`
-	Aliases []string `json:"aliases"`
-}
-
-// Network defines a container network.
-type Network struct {
-	Name       string            `json:"name,omitempty"`
-	Driver     string            `json:"driver,omitempty"`
-	DriverOpts map[string]string `json:"driver_opts,omitempty"`
-}
-
-// Volume defines a container volume.
-type Volume struct {
-	Name       string            `json:"name,omitempty"`
-	Driver     string            `json:"driver,omitempty"`
-	DriverOpts map[string]string `json:"driver_opts,omitempty"`
-}
-
-// Volumes define storage objects used in a pipeline
-type Volumes struct {
-	Volumes []*Volume
-}
-
-// Secret defines a runtime secret
-type Secret struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
-	Mount string `json:"mount,omitempty"`
-	Mask  bool   `json:"mask,omitempty"`
-}
-
-// State defines a container state.
-type State struct {
-	// Container exit code
-	ExitCode int `json:"exit_code"`
-	// Container exited, true or false
-	Exited bool `json:"exited"`
-	// Container is oom killed, true or false
-	OOMKilled bool `json:"oom_killed"`
+	// name is the label for a single pipeline step
+	Name string `json:"name,omitempty"`
+	// Image is the container image to use
+	Image *string `json:"image,omitempty"`
+	// Commands is an array of strings defining a custom command to execute
+	Commands map[string]string `json:"commands,omitempty"`
+	// EnvVars defines environment variables ingested by the build executor
+	EnvVars map[string]string `json:"env,omitempty"`
+	// Secrets define step-specific secrets
+	Secrets Secrets `json:"secrets,omitempty"`
 }
