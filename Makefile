@@ -9,6 +9,6 @@ generate:
 	-e PROJECT_PACKAGE=$(CODE_GENERATOR_PACKAGE) \
 	-e CLIENT_GENERATOR_OUT=$(CODE_GENERATOR_PACKAGE)/client/k8s \
 	-e APIS_ROOT=$(CODE_GENERATOR_PACKAGE)/apis \
-	-e GROUPS_VERSION="pipeline.cncd.io:v1alpha1 agent.cncd.io:v1alpha1" \
+	-e GROUPS_VERSION="pipeline.cncd.io:v1alpha1" \
 	-e GENERATION_TARGETS="deepcopy,client" \
 	$(CODE_GENERATOR_IMAGE)
