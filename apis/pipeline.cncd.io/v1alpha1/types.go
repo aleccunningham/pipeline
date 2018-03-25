@@ -34,12 +34,12 @@ const (
 
 // Pipeline services
 const (
-	// Database is a service type that runs as a sidecar in an executors pod, enabling
-	// services such as MySQL and SQLite to interact with the pipeline
-	Database ServiceType = "database"
-	// Cache is a ServiceType that runs as a sidecar in an executors pod, enabling
-	// services such as Redis and Memcache to interact with the pipeline
-	Cache ServiceType = "cache"
+	// MySQL is a PipelineServiceType that runs as a sidecar in an executors pod
+	// allowing steps to defines interactions with the database
+	MySQL PipelineServiceType = "mysql"
+	// Redis is a PipelineServiceType that runs as a sidecar in an executors pod, enabling
+	// caching capabilities in pipeline steps 
+	Redis PipelineServiceType = "cache"
 )
 
 // +genclient
@@ -141,16 +141,16 @@ type Secret struct {
 	Type SecretType `json:"secretType"`
 }
 
-// ServiceType is the type of sidecar to run in the executors pod
+// PipelineServiceType is the type of sidecar to run in the executors pod
 // common uses include databases, caching, and dependent microservices
-type ServiceType string
+type PipelineServiceType string
 
-// Service is a sidecar container to run while agent executes pipeline stages
-type Service struct {
+// PipelineService is a sidecar container to run while agent executes pipeline stages
+type PipelineService struct {
 	// PipelinePodSpec references the base spec for all pods
 	PipelinePodSpec
 	// ServiceType is the type of service that will run as a sidecar during pipeline execution
-	Type []ServiceType `json:serviceType"`
+	Type []PipelineServiceType `json:serviceType"`
 }
 
 type ServiceSideCar struct {
@@ -158,7 +158,7 @@ type ServiceSideCar struct {
 	PipelinePodSpec
 	// Name is the container name
 	Name string      `json:"name"`
-	Type ServiceType `json:"serviceType"`
+	Type PipelineServiceType `json:"serviceType"`
 }
 
 // Steps defines pipeline steps (pipeline execution)
@@ -179,8 +179,6 @@ type Step struct {
 	Secrets []Secret `json:"secrets,omitempty"`
 	// WorkingDir is the directory on the agent host to execute commands from
 	WorkingDir string `json:"workingDir,omitempty"`
-	// AuthConfig defines registry credentials i.e. gcr.io
-	AuthConfig Auth `json:"authConfig,omitempty"`
 	// OnSuccess determines whether to take action on success
 	OnSuccess bool `json:"onSuccess,omitempty"`
 	// OnFailure determines whether to take action on failure
