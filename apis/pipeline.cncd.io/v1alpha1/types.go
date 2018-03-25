@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"k8s.io/api/core/v1"
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -13,17 +15,10 @@ type PipelineList struct {
 	Items           []Pipeline `json:"items"`
 }
 
-// Different types of deployments
-const (
-	ClusterMode         DeployMode = "cluster"
-	ClientMode          DeployMode = "client"
-	InClusterClientMode DeployMode = "in-cluster-client"
-)
-
 // Image pull policies
 const (
 	IfNotPresent ImagePullPolicy = "IfNotPresent"
-	Always ImagePullPolicy = "Always"
+	Always       ImagePullPolicy = "Always"
 )
 
 // Secret types
@@ -44,7 +39,7 @@ const (
 	Database ServiceType = "database"
 	// Cache is a ServiceType that runs as a sidecar in an executors pod, enabling
 	// services such as Redis and Memcache to interact with the pipeline
-	Cache 	ServiceType = "cache"
+	Cache ServiceType = "cache"
 )
 
 // +genclient
@@ -61,8 +56,8 @@ type Pipeline struct {
 	// Specification of the ddesired behaviour of the pod terminator.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
-	Spec   PipelineSpec   `json:"spec"`
-	Status PipelineStatus `json:"status,omitempty"`
+	Spec   PipelineSpec `json:"spec"`
+	Status State        `json:"state,omitempty"`
 }
 
 // PipelineSpec describes the specification for a Cloud Native Continous Delivery pipeline using Kubernetes as a build manager
@@ -74,7 +69,7 @@ type PipelineSpec struct {
 	EnvVars map[string]string `json:"env"`
 	// Volumes is the list of Kubernetes volumes that can be mounted by the driver and/or executors
 	Volumes []apiv1.Volume `json:"volumes,omitempty"`
-	// Pipeline defines how the Pipeline daemon should run 
+	// Pipeline defines how the Pipeline daemon should run
 	Pipeline DriverSpec `json:"pipeline"`
 	// Agent defines a Cloud Native Continous Delivery build executor
 	Agent AgentSpec `json:"agent,omitempty"`
@@ -128,13 +123,13 @@ type PipelinePodSpec struct {
 
 // NamePath is a pair of a name and a path to which the named objects should be mounted to
 type NamePath struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
 	mountPath string `json:"mountPath"`
 }
 
 // ImagePullPolicy defines the policy of which to handle images
-type ImagePullPolicy string 
-	
+type ImagePullPolicy string
+
 // SecretType tells the type of a secret
 type SecretType string
 
@@ -162,7 +157,7 @@ type ServiceSideCar struct {
 	// PipelinePodSpec references the base spec for all pods
 	PipelinePodSpec
 	// Name is the container name
-	Name string 	 `json:"name"`
+	Name string      `json:"name"`
 	Type ServiceType `json:"serviceType"`
 }
 
@@ -193,14 +188,14 @@ type Step struct {
 }
 
 // Auth defines registry authentication credentials.
-Auth struct {
+type Auth struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	Email    string `json:"email,omitempty"`
 }
 
 // Conn defines a container network connection.
-Conn struct {
+type Conn struct {
 	Name    string   `json:"name"`
 	Aliases []string `json:"aliases"`
 }
