@@ -80,16 +80,6 @@ type PipelineSpec struct {
 	Agent AgentSpec `json:"agent,omitempty"`
 }
 
-// AgentSpec is the specification of the pipeline executor; mirroring many
-type AgentSpec struct {
-	// PipelinePodSpec references the base spec for all pods
-	PipelinePodSpec
-	// Number of instances to deploy for a Prometheus deployment.
-	Replicas *int32 `json:"replicas,omitempty"`
-	// Privileged allows for the executor to use the docker daemon to build images
-	Privileged bool `json:"privileged,omitempty"`
-}
-
 // DriverSpec is the specification for a pipeline daemon server
 // It is referred to as a Pipeline instance
 type DriverSpec struct {
@@ -99,6 +89,16 @@ type DriverSpec struct {
 	Steps []Step `json:"steps,omitempty"`
 	// Services define sidecar pods to run with Agents (i.e. databases)
 	Services []Service `json:"services,omitempty"`
+}
+
+// AgentSpec is the specification of the pipeline executor; mirroring many
+type AgentSpec struct {
+	// PipelinePodSpec references the base spec for all pods
+	PipelinePodSpec
+	// Number of instances to deploy for a Prometheus deployment.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// Privileged allows for the executor to use the docker daemon to build images
+	Privileged bool `json:"privileged,omitempty"`
 }
 
 // PipelinePodSpec defines common things that can be customized for a Pipeline driver or executor pod
@@ -184,6 +184,25 @@ type Step struct {
 	Secrets []Secret `json:"secrets,omitempty"`
 	// WorkingDir is the directory on the agent host to execute commands from
 	WorkingDir string `json:"workingDir,omitempty"`
+	// AuthConfig defines registry credentials i.e. gcr.io
+	AuthConfig Auth `json:"authConfig,omitempty"`
+	// OnSuccess determines whether to take action on success
+	OnSuccess bool `json:"onSuccess,omitempty"`
+	// OnFailure determines whether to take action on failure
+	OnFailure bool `json:"onFailure,omitempty"`
+}
+
+// Auth defines registry authentication credentials.
+Auth struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	Email    string `json:"email,omitempty"`
+}
+
+// Conn defines a container network connection.
+Conn struct {
+	Name    string   `json:"name"`
+	Aliases []string `json:"aliases"`
 }
 
 type State struct {
