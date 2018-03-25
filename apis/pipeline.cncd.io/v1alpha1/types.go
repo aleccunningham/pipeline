@@ -20,7 +20,13 @@ const (
 	InClusterClientMode DeployMode = "in-cluster-client"
 )
 
-// An enumeration of the secret types supported
+// Image pull policies
+const (
+	IfNotPresent ImagePullPolicy = "IfNotPresent"
+	Always ImagePullPolicy = "Always"
+)
+
+// Secret types
 const (
 	// GCPServiceAccountSecret is for secrets sourced from a GCP SA Json key file, which also needs to
 	// be defined as an Env variable GOOGLE_APPLICATION_CREDENTIALS
@@ -29,6 +35,16 @@ const (
 	SlackTokenSecret SecretType = "SlackToken"
 	// GenericType is for secrets that need no special handling
 	GenericType SecretType = "Generic"
+)
+
+// Pipeline services
+const (
+	// Database is a service type that runs as a sidecar in an executors pod, enabling
+	// services such as MySQL and SQLite to interact with the pipeline
+	Database ServiceType = "database"
+	// Cache is a ServiceType that runs as a sidecar in an executors pod, enabling
+	// services such as Redis and Memcache to interact with the pipeline
+	Cache 	ServiceType = "cache"
 )
 
 // +genclient
@@ -50,42 +66,75 @@ type Pipeline struct {
 }
 
 // PipelineSpec describes the specification for a Cloud Native Continous Delivery pipeline using Kubernetes as a build manager
-// It carries all information a pipeline.Run() command uses to run a Pipeline
+// A PipelineSpec closely reflects the structure of a drone.yaml pipeline, along with the server's docker-compose configuration
 type PipelineSpec struct {
 	// Selector is how the target will be selected
 	Selector map[string]string `json:"selector,omitempty"`
 	// Environment is an array of environment variables that are ingested by the Pipeline executor and agents
-	Environment map[string]string `json:"environment"`
+	EnvVars map[string]string `json:"env"`
 	// Volumes is the list of Kubernetes volumes that can be mounted by the driver and/or executors
 	Volumes []apiv1.Volume `json:"volumes,omitempty"`
+	// Pipeline defines how the Pipeline daemon should run 
+	Pipeline DriverSpec `json:"pipeline"`
 	// Agent defines a Cloud Native Continous Delivery build executor
 	Agent AgentSpec `json:"agent,omitempty"`
 }
 
+// AgentSpec is the specification of the pipeline executor; mirroring many
+type AgentSpec struct {
+	// PipelinePodSpec references the base spec for all pods
+	PipelinePodSpec
+	// Number of instances to deploy for a Prometheus deployment.
+	Replicas *int32 `json:"replicas,omitempty"`
+	// Privileged allows for the executor to use the docker daemon to build images
+	Privileged bool `json:"privileged,omitempty"`
+}
+
+// DriverSpec is the specification for a pipeline daemon server
+// It is referred to as a Pipeline instance
+type DriverSpec struct {
+	// PipelinePodSpec references the base spec for all pods
+	PipelinePodSpec
+	// Pipeline carries the build stages for the agent to complete
+	Steps []Step `json:"steps,omitempty"`
+	// Services define sidecar pods to run with Agents (i.e. databases)
+	Services []Service `json:"services,omitempty"`
+}
+
 // PipelinePodSpec defines common things that can be customized for a Pipeline driver or executor pod
 type PipelinePodSpec struct {
+	// Standard object’s metadata. More info:
+	// http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// Metadata Labels and Annotations gets propagated to the prometheus pods.
+	PodMetadata *metav1.ObjectMeta `json:"metadata,omitempty"`
+	// Version of Prometheus to be deployed.
+	Version string `json:"version,omitempty"`
 	// Image is the container image to use
-	Image *string `json:"image,omitempty"`
+	Image string `json:"defaultImage,omitempty"`
+	// Define resources requests and limits for single Pods.
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 	// ConfigMaps carries information of other ConfigMaps to add to the pod
 	ConfigMaps []NamePath `json:"configMaps,omitempty"`
 	// Secrets carries information of secrets to add to the pod
 	Secrets []Secret `json:"secrets,omitempty"`
 	// EnvVars carries the environment variables to add to the pod
-	EnvVars map[string]string `json:"envVars,omitempty"`
-	// Labels are the Kubernetes labels to be added to the pod
-	Labels map[string]string `json:"labels,omitempty"`
-	// Annotations are the Kubernetes annotationsn to be added to the pod
-	Annotations map[string]string `json:"annotations,omitempty"`
+	EnvVars map[string]string `json:"env,omitempty"`
 	// VolumeMounts specifies the volumes listed in ".spec.volumes" to mount into the main container's filesystem
 	VolumeMounts []apiv1.VolumeMount `json:"volumeMounts,omitempty"`
+	// ServiceAccountName is the name of the ServiceAccount to use to run the
+	// Prometheus Pods.
+	ServiceAccountName NamePath `json:"serviceAccountName,omitempty"`
 }
 
 // NamePath is a pair of a name and a path to which the named objects should be mounted to
 type NamePath struct {
 	Name string `json:"name"`
-	Path string `json:"path"`
+	mountPath string `json:"mountPath"`
 }
 
+// ImagePullPolicy defines the policy of which to handle images
+type ImagePullPolicy string 
+	
 // SecretType tells the type of a secret
 type SecretType string
 
@@ -97,67 +146,51 @@ type Secret struct {
 	Type SecretType `json:"secretType"`
 }
 
-// AgentSpec is the specification of the pipeline executor; mirroring many
-type AgentSpec struct {
-	// PipelinePodSpec references the base spec for all pods
-	PipelinePodSpec
-	// State is the current state of the pipeline being executed
-	State State `json:"state,omitempty"`
-	// Pipeline carries the build stages for the agent to complete
-	Stages []Stage `json:"pipeline,omitempty"`
-	// Services define sidecar pods to run with Agents (i.e. databases)
-	Services []Service `json:"services,omitempty"`
-	// Detached defines whether to run the container with tty or not
-	Detached *bool `json:"detached,omitempty"`
-	// Privileged allows for the executor to use the docker daemon to build images
-	Privileged *bool `json:"privileged,omitempty"`
-	// ExtraHosts define external hosts
-	ExtraHosts []*string `json:"extraHosts,omitempty"`
-}
+// ServiceType is the type of sidecar to run in the executors pod
+// common uses include databases, caching, and dependent microservices
+type ServiceType string
 
 // Service is a sidecar container to run while agent executes pipeline stages
 type Service struct {
 	// PipelinePodSpec references the base spec for all pods
 	PipelinePodSpec
+	// ServiceType is the type of service that will run as a sidecar during pipeline execution
+	Type []ServiceType `json:serviceType"`
 }
 
-// Stage denotes a collection of one or more steps.
-type Stage struct {
-	// Name defines the collection of steps for a given stage
-	Name string `json:"name,omitempty"`
-	// Labels defines labels to group pipeline steps
-	Labels map[string]string `json:"labels,omitempty"`
-	// Steps is a list of step objects that are each run in isolated pods in sequence
-	Steps []*Step `json:"steps,omitempty"`
+type ServiceSideCar struct {
+	// PipelinePodSpec references the base spec for all pods
+	PipelinePodSpec
+	// Name is the container name
+	Name string 	 `json:"name"`
+	Type ServiceType `json:"serviceType"`
 }
 
 // Steps defines pipeline steps (pipeline execution)
 type Step struct {
 	// name is the label for a single pipeline step
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
 	// Image is the container image to use
-	Image *string `json:"image,omitempty"`
-	// Pull defines whether to pull the executors container image
-	Pull *bool `json:"pull,omitempty"`
+	Image string `json:"image,omitempty"`
+	// ImagePullPolicy defines the pull policy
+	ImagePullPolicy ImagePullPolicy `json:"imagePullPolicy,omitempty"`
 	// Command is an array of strings defining a custom command to execute
-	Command []*string `json:"commands,omitempty"`
+	Command []string `json:"commands,omitempty"`
 	// Entrypoint is a list of commands the executor runs as the image entrypoint
-	Entrypoint []*string `json:"entrypoint,omitempty"`
-	// Labels defines labels to group pipeline steps
-	Labels map[string]string `json:"labels,omitempty"`
+	Entrypoint []string `json:"entrypoint,omitempty"`
 	// EnvVars defines environment variables ingested by the build executor
-	EnvVars map[string]string `json:"envVars,omitempty"`
+	EnvVars map[string]string `json:"env,omitempty"`
 	// Secrets define step-specific secrets
 	Secrets []Secret `json:"secrets,omitempty"`
 	// WorkingDir is the directory on the agent host to execute commands from
-	WorkingDir *string `json:"workingDir,omitempty"`
+	WorkingDir string `json:"workingDir,omitempty"`
 }
 
 type State struct {
 	// ExitCode is the container exit code
-	ExitCode *int `json:"exitCode,omitempy"`
+	ExitCode int `json:"exitCode,omitempy"`
 	// Container exited, true or false
-	Exited *bool `json:"exited"`
+	Exited bool `json:"exited"`
 	// Container is oom killed, true or false
-	OOMKilled *bool `json:"oom_killed"`
+	OOMKilled bool `json:"oom_killed"`
 }
