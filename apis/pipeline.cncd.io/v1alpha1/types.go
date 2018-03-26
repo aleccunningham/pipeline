@@ -38,7 +38,7 @@ const (
 	// allowing steps to defines interactions with the database
 	MySQL PipelineServiceType = "mysql"
 	// Redis is a PipelineServiceType that runs as a sidecar in an executors pod, enabling
-	// caching capabilities in pipeline steps 
+	// caching capabilities in pipeline steps
 	Redis PipelineServiceType = "cache"
 )
 
@@ -83,7 +83,7 @@ type DriverSpec struct {
 	// Pipeline carries the build stages for the agent to complete
 	Steps []Step `json:"steps,omitempty"`
 	// Services define sidecar pods to run with Agents (i.e. databases)
-	Services []Service `json:"services,omitempty"`
+	Services []ServiceSideCar `json:"services,omitempty"`
 }
 
 // AgentSpec is the specification of the pipeline executor; mirroring many
@@ -157,7 +157,7 @@ type ServiceSideCar struct {
 	// PipelinePodSpec references the base spec for all pods
 	PipelinePodSpec
 	// Name is the container name
-	Name string      `json:"name"`
+	Name string              `json:"name"`
 	Type PipelineServiceType `json:"serviceType"`
 }
 

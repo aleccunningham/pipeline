@@ -85,9 +85,9 @@ func (in *DriverSpec) DeepCopyInto(out *DriverSpec) {
 	}
 	if in.Services != nil {
 		in, out := &in.Services, &out.Services
-		*out = make([]unnameable_Unsupported, len(*in))
+		*out = make([]ServiceSideCar, len(*in))
 		for i := range *in {
-			(*out)[i] = (*in)[i].DeepCopy()
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return
