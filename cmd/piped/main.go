@@ -112,21 +112,21 @@ func start(c *cli.Context) error {
 		sigterm.Set()
 	})
 	/*
-	for {
-		if sigterm.IsSet() {
-			return nil
+		for {
+			if sigterm.IsSet() {
+				return nil
+			}
+			if err := run(ctx, client, filter); err != nil {
+				return err
+			}
 		}
-		if err := run(ctx, client, filter); err != nil {
-			return err
-		}
-	}
 	*/
-	
+
 	var wg sync.WaitGroup
 	parallel := c.Int("max-procs")
 	wg.Add(parallel)
-	
-	for i := 0; i < parallel; i ++ {
+
+	for i := 0; i < parallel; i++ {
 		go func() {
 			defer wg.Done()
 			for {
@@ -140,7 +140,7 @@ func start(c *cli.Context) error {
 			}
 		}()
 	}
-	
+
 	wg.Wait()
 	return nil
 }
@@ -160,7 +160,7 @@ func run(ctx context.Context, client rpc.Peer, filter rpc.Filter) error {
 	if os.Getenv("SUICIDE_MODE") != "" {
 		os.Exit(1)
 	}
-	
+
 	// new docker engine
 	engine, err := docker.NewEnv()
 	if err != nil {

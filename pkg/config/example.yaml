@@ -1,0 +1,12 @@
+apiVersion: pipeline.cncd.io/v1alpha1
+kind: Pipeline
+build:
+  artifacts:
+    - imageName: busybox
+      dockerfilePath: .
+      workspace: /workspace
+      buildArgs:
+        - GO_PATH=/workspace/go
+deploy:
+  selectors:
+    - pipeline-ci

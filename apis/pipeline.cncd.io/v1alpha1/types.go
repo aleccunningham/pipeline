@@ -71,8 +71,6 @@ type PipelineSpec struct {
 	Volumes []apiv1.Volume `json:"volumes,omitempty"`
 	// Pipeline defines how the Pipeline daemon should run
 	Pipeline DriverSpec `json:"pipeline"`
-	// Agent defines a Cloud Native Continous Delivery build executor
-	Agent AgentSpec `json:"agent,omitempty"`
 }
 
 // DriverSpec is the specification for a pipeline daemon server
@@ -84,16 +82,6 @@ type DriverSpec struct {
 	Steps []Step `json:"steps,omitempty"`
 	// Services define sidecar pods to run with Agents (i.e. databases)
 	Services []ServiceSideCar `json:"services,omitempty"`
-}
-
-// AgentSpec is the specification of the pipeline executor; mirroring many
-type AgentSpec struct {
-	// PipelinePodSpec references the base spec for all pods
-	PipelinePodSpec
-	// Number of instances to deploy for a Prometheus deployment.
-	Replicas *int32 `json:"replicas,omitempty"`
-	// Privileged allows for the executor to use the docker daemon to build images
-	Privileged bool `json:"privileged,omitempty"`
 }
 
 // PipelinePodSpec defines common things that can be customized for a Pipeline driver or executor pod
