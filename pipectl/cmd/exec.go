@@ -50,6 +50,29 @@ var executeCommand = cli.Command{
 	},
 }
 
+func readConfig(filename string) ([]byte, error) {
+	switch {
+	case filename == "":
+		return nil, errors.New("Filename not specified")
+	case filename == "-":
+		return ioutil.ReadAll(os.Stdin)
+	case strings.HasPrefix(filename, "http://") || strings.HasPrefix(filename, "https://"):
+		return retrieve(filename)
+	default:
+		return ioutil.ReadFile(filename)
+	}
+}
+
+func retrieve(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	
+	return ioutil.ReadAll(resp.Body)
+}
+
 func executeAction(c *cli.Context) (err error) {
 	path := c.Args().First()
 	if path == "" {
