@@ -6,18 +6,20 @@ import "io"
 // to create and manage container resources.
 type Engine interface {
 	// Setup the pipeline environment.
-	Setup(*Config) error
+	Setup(context.Context, *Config) error
+	// Build the docker image for said deployment
+	Build(context.Context, ...interface{}) (*BuildResult, error)
 	// Start the pipeline step.
-	Exec(*Step) error
+	Exec(context.Context, *Step) error
 	// Kill the pipeline step.
-	Kill(*Step) error
+	Kill(context.Context, *Step) error
 	// Wait for the pipeline step to complete and returns
 	// the completion results.
-	Wait(*Step) (*State, error)
+	Wait(context.Context, *Step) (*State, error)
 	// Tail the pipeline step logs.
-	Tail(*Step) (io.ReadCloser, error)
+	Tail(context.Context, *Step) (io.ReadCloser, error)
 	// Destroy the pipeline environment.
-	Destroy(*Config) error
+	Destroy(context.Context, *Config) error
 	// Close the engine
 	Close() error
 }

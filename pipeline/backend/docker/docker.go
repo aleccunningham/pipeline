@@ -11,16 +11,27 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/marjoram/pipeline/pipeline/backend"
+	"github.com/GoogleCloudPlatform/skaffold/pkg/skaffold/docker"
+	"github.com/GoogleCloudPlatform/skaffold/pkg/skaffold/constants"
+	"github.com/GoogleCloudPlatform/skaffold/pkg/skaffold/build/tag"
+	"github.com/GoogleCloudPlatform/skaffold/pkg/skaffold/util"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type engine struct {
-	client *client.Client
+	client 		*client.Client
+	
+	api		docker.DockerAPIClient
+	kubeContext 	string
 }
 
 // New returns a new Docker Engine using the given client.
-func New(cli *client.Client) backend.Engine {
+func New(cli *client.Client, kubeContext string) backend.Engine {
 	return &engine{
 		client: cli,
+		api:	api,
+		kubeContext: kubeContext == constants.DefaultMinikubeContext || kubeContext == DefaultDockerForDesktopContext,
 	}
 }
 
@@ -32,6 +43,50 @@ func NewEnv() (backend.Engine, error) {
 		return nil, err
 	}
 	return New(cli), nil
+}
+
+func (e *engine) Build(ctx context.Context, e.api) (*BuildResult, error) {
+	err := docker.RunBuild(ctx, e.api, &docker.BuildOptions{
+		ImageName:	initialTag,
+		Dockerfile:	artifact.DockerfilePath,
+		ContextDir:	artifact.Workspace,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "running build")
+	}
+	digest, err := docker.Digest(ctx, l.api, initialTag)
+	if err != nil {
+		return nil, errors.Wrap(err, "running build and tag")
+	}
+	if digest == "" {
+			return nil, fmt.Errorf("digest not found")
+	}
+	tag, err := tagger.GenerateFullyQualifedImageName(".", &tag.TagOptions{
+		ImageName:	artifact.ImageName,
+		Digest:		digest,
+	})
+	if err != nil {
+			return nil, errors.Wrap(err, "generating tag")
+		}
+		if err := l.api.ImageTag(ctx, fmt.Sprintf("%s:latest", initialTag), tag); err != nil {
+			return nil, errors.Wrap(err, "tagging image")
+		}
+		if _, err := io.WriteString(out, fmt.Sprintf("Successfully tagged %s\n", tag)); err != nil {
+			return nil, errors.Wrap(err, "writing tag status")
+		}
+		if !*l.LocalBuild.SkipPush {
+			if err := docker.RunPush(ctx, l.api, tag, out); err != nil {
+				return nil, errors.Wrap(err, "running push")
+			}
+		}
+		res.Builds = append(res.Builds, Build{
+			ImageName: artifact.ImageName,
+			Tag:       tag,
+			Artifact:  artifact,
+		})
+	}
+
+	return res, nil
 }
 
 func (e *engine) Setup(conf *backend.Config) error {
