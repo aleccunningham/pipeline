@@ -113,7 +113,7 @@ type PipelinePodSpec struct {
 	// Secrets carries information of secrets to add to the pod
 	Secrets []Secret `json:"secrets,omitempty"`
 	// EnvVars carries the environment variables to add to the pod
-	EnvVars map[string]string `json:"env,omitempty"`
+	EnvVars map[string]string `json:"environment,omitempty"`
 	// VolumeMounts specifies the volumes listed in ".spec.volumes" to mount into the main container's filesystem
 	VolumeMounts []apiv1.VolumeMount `json:"volumeMounts,omitempty"`
 	// ServiceAccountName is the name of the ServiceAccount to use to run the
