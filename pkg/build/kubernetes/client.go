@@ -39,3 +39,60 @@ func GetClientset() (kubernetes.Interface, error) {
 	}
 	return client, nil
 }
+
+// Controller logic
+func (c *Controller) newWorkerPod(podConfig, pipeline *v1.ConfigMap) (v1.Pod, error) {
+	ctx := c.getEnv(podConfig, pipeline)
+	
+	cmd := []string{}
+	if cmdString, ok := pipeline.Data["workerCommand"]; ok {
+		cmd = string.Split(string(cmdString), " ")
+	}
+	
+	podSpec := v1.PodSpec{
+		ServiceAccountName := podConfig.WorkerServiceAccount,
+		NodeSelector: map[string]string{
+			"beta.kubernetes.io/os": "linux",
+		},
+		Container: []v1.Container{{
+			Name:		"pipeline-worker",
+			Image:		"cncd/pipeline-worker",
+			Command:	cmd,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name: 		volumeName,
+					MountPath: 	volumeMountPath,
+					ReadOnly: 	true,
+				},
+				{
+					Name: 		sidecarVolumeName,
+					MountPath:	sidecarVolumeMountPath,
+					ReadOnly:	true,
+				},
+			},
+			Env: env,
+		}},
+		Volumes: []v1.Volume{
+			{
+				Name: volumeName,
+				VolumeSource: v1.VolumeSource{},
+			},
+			{
+				Name: sidecarVolumeName,
+				VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		},
+		RestartPolicy: v1.RestartPolicyNever,
+	}
+		
+	pod := v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:	pipeline.Name,
+			Labels:	pipeline.Labels,
+		},
+		Spec: podSpec,
+	}
+		
+	return pod, nil
+}
